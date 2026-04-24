@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/miridius/how/security/advisories/new
+    about: Report a security issue privately. See SECURITY.md for the full policy.
+  - name: Question or discussion
+    url: https://github.com/miridius/how/discussions
+    about: Open a discussion for questions or ideas.

@@ -2,11 +2,7 @@
 
 Ask Claude for a terminal command, edit it, run it, keep it in your history.
 
-```console
-$ how find ts files changed this week
-$ find . -name '*.ts' -mtime -7
-  …renders the suggested command in an editable prompt. Enter runs it, Esc cancels.
-```
+![Terminal recording: the user types "how list the 5 largest files in this directory". Claude returns `ls -lS | head -6` in an editable prompt. The user presses Enter and the command runs, showing the five biggest files.](docs/demo.gif)
 
 It's a tiny shell function plus a [Bun](https://bun.sh) script. The function
 captures the command that the script prints to stdout, appends it to your

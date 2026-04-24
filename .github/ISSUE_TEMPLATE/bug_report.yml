@@ -1,0 +1,58 @@
+name: Bug report
+description: Report a bug in how
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug report. Please redact any API keys from the
+        output you paste below.
+  - type: input
+    id: version
+    attributes:
+      label: how version
+      placeholder: "output of `how --version`"
+    validations:
+      required: true
+  - type: input
+    id: bun
+    attributes:
+      label: bun version
+      placeholder: "output of `bun --version`"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: "e.g. macOS 15.2, Ubuntu 24.04"
+    validations:
+      required: true
+  - type: textarea
+    id: invocation
+    attributes:
+      label: Invocation
+      description: The exact command you ran, and the shell you ran it in.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the full stderr output. Redact API keys.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: model-output
+    attributes:
+      label: Model output, if relevant
+      description: The command the model returned, if that's part of the issue.
+      render: shell

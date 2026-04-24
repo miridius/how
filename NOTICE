@@ -1,0 +1,20 @@
+how
+Copyright (c) 2026 miridius
+Licensed under the MIT License (see LICENSE).
+
+Portions of this project were generated with assistance from Anthropic's
+Claude, under human direction and review. Under Anthropic's Commercial
+Terms of Service, any rights Anthropic held in those outputs are assigned
+to the project maintainers.
+
+Per guidance from the U.S. Copyright Office (January 2025), material
+produced by an AI system without sufficient human creative input may not
+be eligible for copyright protection. The maintainers make no claim to
+copyright in any portion of this work that falls below that bar, and
+license the work in its entirety under the MIT License. Where no valid
+copyright exists to license, the MIT grant is simply a no-op — users
+may still use the software without restriction.
+
+This project depends on third-party software. See the installed `node_modules`
+or the bun.lock file for the dependency tree; each dependency retains its
+own license.

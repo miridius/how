@@ -16,6 +16,9 @@ Thumbs.db
 *.swo
 *~
 
+# Per-checkout tool state (Serena MCP project cache, etc.)
+.serena/
+
 # Environment
 .env
 .env.local

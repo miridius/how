@@ -46,7 +46,7 @@
     "check": "bun run typecheck && bun run lint && bun test"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.65.0"
+    "@anthropic-ai/sdk": "^0.91.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.13",

@@ -23,13 +23,14 @@ principal risks:
 
 1. **Prompt injection via user input.** A user prompt can include
    instructions that cause the model to emit commands unrelated to the
-   apparent intent. The tool's defences are (a) the user is in the loop and
-   approves every command, (b) the denylist forces typed-`yes` confirmation
-   on destructive patterns even under `-y`, and (c) the shape check rejects
-   prose. The model itself is not a security boundary.
+   apparent intent. The tool's only defence is that the user is in the
+   loop and approves every command by hitting Enter at the edit prompt.
+   The model is not a security boundary; the user is.
 2. **Hallucinated destructive commands.** The model can, without malice,
-   emit `rm -rf *` from a harmless prompt. The denylist is explicitly tuned
-   for this failure mode.
+   emit `rm -rf *` from a harmless prompt. The denylist demotes `-y` to
+   the manual edit prompt with a 🚨 warning for common destructive
+   patterns. It is a "look at this one carefully" nudge, not a security
+   boundary — patterns can always be bypassed by editing the command.
 3. **Shell history leakage.** Commands run via `how` are appended to the
    user's shell history. Don't paste secrets into prompts.
 4. **API key handling.** The SDK reads `ANTHROPIC_API_KEY` from the

@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Pared the surface area back toward the original script's simplicity.
+  The interactive edit prompt is the only confirmation path; safety
+  features that duplicated it have been removed.
+
+### Removed
+
+- `--dry-run` / `-n` flag. Esc / Ctrl-C at the edit prompt is dry-run.
+- `--unsafe` flag. Edit the command at the prompt to bypass a denylist
+  match.
+- Typed-`yes` / typed-`no` confirmation on denylist hits. Replaced by a
+  printed `🚨 <reason>` warning; the regular edit prompt handles the
+  rest. Esc / Ctrl-C cancel; Enter (or edited Enter) accepts.
+- `REFUSE:` system-prompt protocol and the prose-shape check. Prose
+  responses now land in the edit prompt by default; with `-y` they
+  forward to stdout as-is and the shell will report a syntax error.
+- Root refusal and `HOW_ALLOW_ROOT` env. The user is the safety model.
+- `HOW_TIMEOUT_MS` env. Timeout is hardcoded at 30 s.
+
 ## [0.1.0] — 2026-04-24
 
 Initial public release, extracted from the author's personal dotfiles.

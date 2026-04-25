@@ -64,16 +64,13 @@ re-run it to update.
 how list files larger than 100MB
 how show all docker containers including stopped
 how -y what's my current git branch
-how -n --dry-run-mode rename every .jpeg to .jpg in this directory
 ```
 
 ### Flags
 
 | Flag | Meaning |
 | --- | --- |
-| `-y`, `--yes` | Skip the edit step; the model's command is executed directly. Denylist matches still prompt. |
-| `-n`, `--dry-run` | Print the command but do not execute it. |
-| `--unsafe` | Disable the built-in denylist. Use only when you mean it. |
+| `-y`, `--yes` | Skip the edit step. Denylist matches still go through it. |
 | `-h`, `--help` | Help. |
 | `-v`, `--version` | Version. |
 
@@ -83,46 +80,36 @@ how -n --dry-run-mode rename every .jpeg to .jpg in this directory
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | *(required)* | Anthropic API credential. |
 | `HOW_MODEL` | `claude-sonnet-4-6` | Override the Claude model. |
-| `HOW_TIMEOUT_MS` | `30000` | API request timeout. |
 | `HOW_EXTRA_DENY` | — | Newline-separated regexes added to the safety denylist. |
-| `HOW_ALLOW_ROOT` | — | Set to `1` to permit running as root. Refused by default. |
 
 ---
 
 ## Safety
 
 `how` executes shell commands written by a large language model. The LLM can
-be wrong, can be manipulated by anything it reads, and has no concept of your
-effective UID or the value of your files. **You** approve every command it
-suggests.
+be wrong and has no concept of the value of your files. **You** approve every
+command it suggests by hitting Enter — that's the safety boundary.
 
-The tool adopts several defences — none are a substitute for reading the
-command before you approve it.
-
-- **Confirmation by default.** The suggested command lands in an editable
-  prompt; nothing runs until you press Enter. `-y` skips the edit step but
-  does **not** bypass the denylist below.
-- **Denylist.** Regex patterns for `sudo`, unbounded `rm -rf`, `curl | sh`,
-  `dd`/`mkfs`, fork bombs, `git push --force`, and similar always force a
-  typed-`yes` confirmation — even with `-y`. See `src/denylist.ts` for the
-  current list; extend via `HOW_EXTRA_DENY`.
-- **Shape check.** If the model returns prose, an apology, or the literal
-  `REFUSE: <reason>`, `how` refuses to execute anything and surfaces the
-  response instead.
-- **Root refusal.** `how` exits rather than run as root; set
-  `HOW_ALLOW_ROOT=1` to override.
+- **Edit step by default.** The suggested command lands in an editable
+  prompt; nothing runs until you press Enter. Esc / Ctrl-C cancel.
+- **Denylist demotes `-y`.** Regex patterns for `sudo`, unbounded `rm -rf`,
+  `curl | sh`, `dd`/`mkfs`, fork bombs, `git push --force`, `git reset --hard`,
+  and similar always go through the edit prompt with a 🚨 warning, even when
+  `-y` was passed. The denylist isn't a security boundary — it's a "look at
+  this one" nudge for patterns that LLMs commonly hallucinate. See
+  `src/denylist.ts` for the current list; extend it via `HOW_EXTRA_DENY`.
 - **Bounded request.** Each call caps at 512 output tokens and a 30-second
-  deadline.
+  timeout.
 
 ### Threat model in one paragraph
 
-`how` lives inside Simon Willison's "lethal trifecta" warning by design — it
-can take untrusted input and it can execute shell. The intended mitigation is
-that the user is a knowledgeable human in the loop who reads and approves the
-one command before it runs. Do not hand this tool arbitrary file contents,
-web pages, git logs, or clipboard data via the prompt unless you're ready to
-read whatever it suggests with the same care. Do not run it with `sudo` or
-against directories containing secrets you aren't willing to lose.
+`how` lives inside Simon Willison's "lethal trifecta" by design — it takes
+input and can execute shell. The intended mitigation is that the user is a
+knowledgeable human in the loop who reads and approves the command before it
+runs. Don't hand this tool arbitrary file contents, web pages, git logs, or
+clipboard data via the prompt unless you're ready to read whatever it
+suggests with the same care. Don't run it under `sudo` or against
+directories containing secrets you aren't willing to lose.
 
 See [SECURITY.md](./SECURITY.md) for disclosure and a fuller threat model.
 

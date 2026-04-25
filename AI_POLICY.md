@@ -55,6 +55,6 @@ further engagement. Reproduce issues yourself before reporting.
 
 ## 7. Safety changes need extra scrutiny
 
-Changes to `src/denylist.ts`, the shape check in `src/anthropic.ts`, or the
-root-refusal policy in `src/how.ts` require a tests-first PR. These are
-safety controls; they should only loosen with evidence.
+Changes to `src/denylist.ts` require a tests-first PR — the denylist is the
+only nudge between an LLM hallucination and execution. Loosening a pattern
+needs evidence.

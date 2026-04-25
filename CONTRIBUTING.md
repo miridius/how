@@ -35,8 +35,9 @@ Required:
    auto-fix where possible.
 5. **No new dependencies** unless justified. Every dep is supply-chain
    risk.
-6. **Safety controls don't regress.** Changes to the denylist, root
-   refusal, or shape check must make the tool safer or equivalently safe.
+6. **Denylist doesn't regress.** Changes to `src/denylist.ts` must make
+   the patterns more accurate or add coverage; weakening a pattern needs
+   evidence and a test.
 
 ## Commit style
 

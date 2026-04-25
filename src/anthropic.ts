@@ -28,31 +28,6 @@ export function stripCodeFences(text: string): string {
   return trimmed;
 }
 
-/**
- * Shape check: does the LLM output look like a shell command rather than prose?
- * This is a cheap refusal gate — if the model returned an apology, a refusal,
- * or a multi-paragraph explanation, we do NOT want to execute the first line.
- */
-export function looksLikeShellCommand(candidate: string): boolean {
-  if (!candidate) return false;
-  const lines = candidate.split("\n").filter((l) => l.trim().length > 0);
-  if (lines.length === 0) return false;
-  // Explicit refusal prefix we ask the model to use.
-  if (/^REFUSE:/i.test(candidate.trim())) return false;
-  // Reject prose-like outputs: multiple sentences ending in punctuation,
-  // or leading capital + verb-like phrasing ("To list files, run ...").
-  const first = lines[0];
-  if (first === undefined) return false;
-  // More than two lines is suspicious unless it's a heredoc or line continuation.
-  if (lines.length > 5) return false;
-  // Command-ish heuristic: starts with an alphanumeric token or common shell
-  // syntax (variable assignment, subshell, etc.), and does not contain an
-  // obvious apology marker.
-  if (/^(I (can|cannot|can't|am|'m|will|would)|Sorry|Here's|Here is|To )/.test(first)) return false;
-  if (!/^[A-Za-z0-9_/.({$"'-]/.test(first)) return false;
-  return true;
-}
-
 export async function generateCommand(opts: GenerateOpts): Promise<GenerateResult> {
   const client = new Anthropic({ apiKey: opts.apiKey });
   const msg = await client.messages.create(

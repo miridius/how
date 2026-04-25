@@ -7,10 +7,9 @@
 
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { generateCommand, looksLikeShellCommand, stripCodeFences } from "./anthropic.ts";
+import { generateCommand, stripCodeFences } from "./anthropic.ts";
 import { checkDenylist, parseExtraDenylist } from "./denylist.ts";
 
-// Bun-only — hard-fail early if someone ran us under node/npx.
 if (typeof Bun === "undefined") {
   process.stderr.write(
     "how: requires bun (https://bun.sh). Install with: curl -fsSL https://bun.sh/install | bash\n",
@@ -21,14 +20,12 @@ if (typeof Bun === "undefined") {
 const ACCENT = "\x1b[1;38;2;127;88;255m";
 const DIM = "\x1b[2m";
 const RED = "\x1b[31m";
-const YELLOW = "\x1b[33m";
 const RESET = "\x1b[0m";
 
 const DEFAULT_MODEL = "claude-sonnet-4-6";
-const DEFAULT_TIMEOUT_MS = 30_000;
-const DEFAULT_MAX_TOKENS = 512;
+const TIMEOUT_MS = 30_000;
+const MAX_TOKENS = 512;
 
-/** Write to stderr (all UI output). */
 const log = (s: string): void => {
   process.stderr.write(`${s}\n`);
 };
@@ -36,8 +33,6 @@ const log = (s: string): void => {
 interface ParsedArgs {
   readonly query: string;
   readonly autoRun: boolean;
-  readonly dryRun: boolean;
-  readonly unsafe: boolean;
   readonly showHelp: boolean;
   readonly showVersion: boolean;
 }
@@ -58,8 +53,6 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
     if (arg === "-h" || arg === "--help") flags.add("help");
     else if (arg === "-v" || arg === "--version") flags.add("version");
     else if (arg === "-y" || arg === "--yes") flags.add("yes");
-    else if (arg === "-n" || arg === "--dry-run") flags.add("dry-run");
-    else if (arg === "--unsafe") flags.add("unsafe");
     else if (arg.startsWith("-") && arg.length > 1) {
       throw new Error(`unknown flag: ${arg}`);
     } else {
@@ -69,8 +62,6 @@ function parseArgs(argv: readonly string[]): ParsedArgs {
   return {
     query: rest.join(" ").trim(),
     autoRun: flags.has("yes"),
-    dryRun: flags.has("dry-run"),
-    unsafe: flags.has("unsafe"),
     showHelp: flags.has("help"),
     showVersion: flags.has("version"),
   };
@@ -82,28 +73,22 @@ function printHelp(): void {
 Usage: how [options] <what you want to do>
 
 Options:
-  -y, --yes          Skip the edit step; still prompts on denylist matches.
-  -n, --dry-run      Print the command but do not execute it.
-      --unsafe       Disable the denylist for this invocation. Dangerous.
-  -h, --help         Show this help.
-  -v, --version      Print version and exit.
+  -y, --yes      Skip the edit step. Denylist matches still go through the edit prompt.
+  -h, --help     Show this help.
+  -v, --version  Print version and exit.
 
 Environment:
   ANTHROPIC_API_KEY   Required. https://console.anthropic.com/settings/keys
   HOW_MODEL           Override the Claude model (default: ${DEFAULT_MODEL}).
-  HOW_TIMEOUT_MS      Request timeout in milliseconds (default: ${DEFAULT_TIMEOUT_MS}).
-  HOW_EXTRA_DENY      Newline-separated regexes to add to the safety denylist.
-  HOW_ALLOW_ROOT      Set to 1 to permit running as root (refused by default).
+  HOW_EXTRA_DENY      Newline-separated regexes added to the safety denylist.
 
 Examples:
   how list files larger than 100MB
   how -y show disk usage
-  how -n rename every .jpeg to .jpg in this directory
 
 Safety:
-  This tool executes shell commands suggested by an LLM. Confirmation is
-  required by default; destructive commands (rm, sudo, curl|sh, dd, ...) always
-  prompt even with -y. See README for the full threat model.`);
+  Commands matching the denylist (sudo, rm -rf, curl|sh, dd, git push --force, ...)
+  ignore -y and always go through the edit prompt with a 🚨 warning.`);
 }
 
 function readVersion(): string {
@@ -157,7 +142,6 @@ function buildSystemPrompt(): string {
     "Reply with ONLY the command(s) needed — no explanation, no markdown fences, no commentary.",
     "If multiple commands are needed, join them with && or ;.",
     "Prefer common tools (coreutils, git, jq, curl, etc.).",
-    "If the request is ambiguous, dangerous without more context, or cannot be satisfied by a shell command, reply with exactly: REFUSE: <short reason>",
   ].join(" ");
 }
 
@@ -197,7 +181,7 @@ async function runGumInput(prefill: string): Promise<RunGumInputResult> {
 
 async function plainLineInput(prefill: string): Promise<string | null> {
   log(`${ACCENT}$${RESET} ${prefill}`);
-  process.stderr.write(`${DIM}(enter to run, ctrl-c to cancel)${RESET} `);
+  process.stderr.write(`${DIM}(enter to run, type to edit, ctrl-c to cancel)${RESET} `);
   try {
     const buf = Buffer.alloc(8192);
     const fs = await import("node:fs");
@@ -206,19 +190,6 @@ async function plainLineInput(prefill: string): Promise<string | null> {
     return input.length === 0 ? prefill : input;
   } catch {
     return null;
-  }
-}
-
-/** Type `yes` to override a denylist match. */
-async function typedConfirmation(): Promise<boolean> {
-  process.stderr.write(`Type ${RED}yes${RESET} to run anyway, anything else cancels: `);
-  try {
-    const buf = Buffer.alloc(32);
-    const fs = await import("node:fs");
-    const n = fs.readSync(0, buf, 0, buf.length, null);
-    return buf.subarray(0, n).toString("utf8").trim() === "yes";
-  } catch {
-    return false;
   }
 }
 
@@ -248,16 +219,6 @@ async function startSpinner(gum: boolean): Promise<() => void> {
   };
 }
 
-function requireRootPolicy(env: Record<string, string | undefined>): void {
-  const uid = typeof process.getuid === "function" ? process.getuid() : -1;
-  if (uid === 0 && env["HOW_ALLOW_ROOT"] !== "1") {
-    log(
-      `${RED}how: refusing to run as root.${RESET} Set HOW_ALLOW_ROOT=1 to override — you assume full responsibility for anything the LLM suggests.`,
-    );
-    process.exit(77);
-  }
-}
-
 export interface RunOpts {
   readonly argv: readonly string[];
   readonly env: Record<string, string | undefined>;
@@ -278,7 +239,6 @@ export async function run(opts: RunOpts): Promise<number> {
     return 0;
   }
   if (parsed.showVersion) {
-    process.stdout.write(""); // ensure stdout stays empty of command
     log(readVersion());
     return 0;
   }
@@ -286,8 +246,6 @@ export async function run(opts: RunOpts): Promise<number> {
     printHelp();
     return 64;
   }
-
-  requireRootPolicy(opts.env);
 
   const apiKey = opts.env["ANTHROPIC_API_KEY"];
   if (!apiKey || apiKey.trim().length === 0) {
@@ -298,11 +256,6 @@ export async function run(opts: RunOpts): Promise<number> {
   }
 
   const model = opts.env["HOW_MODEL"]?.trim() || DEFAULT_MODEL;
-  const timeoutMs = Number(opts.env["HOW_TIMEOUT_MS"] ?? DEFAULT_TIMEOUT_MS);
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-    log(`${RED}how: HOW_TIMEOUT_MS must be a positive number.${RESET}`);
-    return 78;
-  }
 
   let extraDeny: readonly RegExp[] = [];
   try {
@@ -317,24 +270,19 @@ export async function run(opts: RunOpts): Promise<number> {
 
   let raw: string;
   try {
-    const signal = AbortSignal.timeout(timeoutMs);
     const result = await generateCommand({
       apiKey,
       model,
       systemPrompt: buildSystemPrompt(),
       userPrompt: parsed.query,
-      maxTokens: DEFAULT_MAX_TOKENS,
-      signal,
+      maxTokens: MAX_TOKENS,
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     raw = result.text;
   } catch (e) {
     stopSpinner();
     const msg = e instanceof Error ? e.message : String(e);
-    if (e instanceof Error && e.name === "TimeoutError") {
-      log(`${RED}how: request timed out after ${timeoutMs}ms.${RESET}`);
-      return 75;
-    }
-    log(`${RED}how: API call failed: ${msg}${RESET}`);
+    log(`${RED}how: ${msg}${RESET}`);
     return 1;
   }
   stopSpinner();
@@ -344,84 +292,43 @@ export async function run(opts: RunOpts): Promise<number> {
     log(`${RED}how: model returned no output.${RESET}`);
     return 1;
   }
-  if (cmd.trim().toUpperCase().startsWith("REFUSE:")) {
-    log(`${YELLOW}how: model refused — ${cmd.trim().slice(7).trim()}${RESET}`);
-    return 1;
-  }
-  if (!looksLikeShellCommand(cmd)) {
-    log(`${RED}how: model did not return a shell command. Raw output:${RESET}`);
-    log(cmd);
-    return 1;
-  }
 
-  // Denylist check — runs even when -y is passed, unless --unsafe.
-  const denyMatch = parsed.unsafe ? null : checkDenylist(cmd, extraDeny);
+  // Denylist match: print warning above the prompt and demote -y so the user
+  // is forced to look at the command before accepting (or edit it, or cancel).
+  const denyMatch = checkDenylist(cmd, extraDeny);
   if (denyMatch) {
-    log(`${ACCENT}$${RESET} ${cmd}`);
-    log(`${RED}⚠  DANGER:${RESET} ${denyMatch.reason} (/${denyMatch.pattern.source}/)`);
-    log(`${DIM}Pass --unsafe to disable the denylist, or edit the command below.${RESET}`);
-    if (parsed.dryRun) {
-      log(`${DIM}(dry run — not executing)${RESET}`);
-      return 0;
-    }
-    const proceed = await typedConfirmation();
-    if (!proceed) {
-      log(`${DIM}cancelled${RESET}`);
-      return 130;
-    }
+    log(`🚨 ${denyMatch.reason}`);
   }
 
   let final = cmd;
-  if (!parsed.autoRun && !denyMatch) {
-    if (gum) {
-      const { edited, exitCode } = await runGumInput(cmd);
-      if (edited === null) {
-        const up = exitCode === 130 ? 2 : 1;
-        process.stderr.write(`\x1b[${up}A\x1b[J`);
-        log(`${ACCENT}$${RESET} ${cmd}`);
-        log(`${DIM}cancelled${RESET}`);
-        return exitCode === 0 ? 130 : exitCode;
-      }
-      final = edited;
-      log(`${ACCENT}$${RESET} ${final}`);
-    } else {
-      const input = await plainLineInput(cmd);
-      if (input === null) {
-        log(`\n${DIM}cancelled${RESET}`);
-        return 130;
-      }
-      final = input;
+  if (parsed.autoRun && !denyMatch) {
+    log(`${ACCENT}$${RESET} ${cmd}`);
+  } else if (gum) {
+    const { edited, exitCode } = await runGumInput(cmd);
+    if (edited === null) {
+      const up = exitCode === 130 ? 2 : 1;
+      process.stderr.write(`\x1b[${up}A\x1b[J`);
+      if (denyMatch) log(`🚨 ${denyMatch.reason}`);
+      log(`${ACCENT}$${RESET} ${cmd}`);
+      log(`${DIM}cancelled${RESET}`);
+      return exitCode === 0 ? 130 : exitCode;
     }
-  } else if (parsed.autoRun && !denyMatch) {
+    final = edited;
     log(`${ACCENT}$${RESET} ${final}`);
-  }
-
-  // If the user edited and the new command hits the denylist, re-confirm.
-  if (!parsed.unsafe && final !== cmd) {
-    const reMatch = checkDenylist(final, extraDeny);
-    if (reMatch) {
-      log(`${RED}⚠  Edited command still matches denylist:${RESET} ${reMatch.reason}`);
-      const ok = parsed.dryRun ? false : await typedConfirmation();
-      if (!ok) {
-        log(`${DIM}cancelled${RESET}`);
-        return 130;
-      }
+  } else {
+    const input = await plainLineInput(cmd);
+    if (input === null) {
+      log(`\n${DIM}cancelled${RESET}`);
+      return 130;
     }
+    final = input;
   }
 
-  if (parsed.dryRun) {
-    log(`${DIM}(dry run — not executing)${RESET}`);
-    return 0;
-  }
-
-  // Print the final command to stdout for the shell wrapper to eval.
   process.stdout.write(`${final}\n`);
   return 0;
 }
 
 if (import.meta.main) {
-  // Double-SIGINT pattern: first Ctrl+C aborts the in-flight request,
-  // second forces exit. Bun wires AbortSignal.timeout() through fetch.
   let sigintCount = 0;
   process.on("SIGINT", () => {
     sigintCount += 1;

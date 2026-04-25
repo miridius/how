@@ -11,7 +11,7 @@ Require gum
 Set Shell       "zsh"
 Set FontSize    18
 Set Width       1100
-Set Height      600
+Set Height      380
 Set Theme       "Dracula"
 Set TypingSpeed 60ms
 Set Padding     24
@@ -35,10 +35,9 @@ Type "how list the 5 largest files in this directory"
 Sleep 400ms
 Enter
 
-# Thinking spinner + API round-trip; command lands in the gum-styled edit box.
-# 10s margin covers normal API latency; bump if the regenerated GIF shows the
-# "Thinking..." spinner still running when Enter fires on the next line.
-Sleep 10s
+# Wait for the gum prompt to render (its footer shows "enter submit").
+# Dynamic — proceeds the moment the prompt appears, with a 15s safety cap.
+Wait@15s /enter submit/
 
 # Accept the command as-is.
 Enter

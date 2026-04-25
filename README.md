@@ -103,13 +103,14 @@ command it suggests by hitting Enter — that's the safety boundary.
 
 ### Threat model in one paragraph
 
-`how` lives inside Simon Willison's "lethal trifecta" by design — it takes
-input and can execute shell. The intended mitigation is that the user is a
-knowledgeable human in the loop who reads and approves the command before it
-runs. Don't hand this tool arbitrary file contents, web pages, git logs, or
-clipboard data via the prompt unless you're ready to read whatever it
-suggests with the same care. Don't run it under `sudo` or against
-directories containing secrets you aren't willing to lose.
+By default `how` is a one-input tool — natural-language prompts come from
+the user, not from external content — so the standard "lethal trifecta"
+(private-data access + untrusted input + external comms) isn't satisfied as
+shipped. The thing to watch is the moment you start piping untrusted content
+into the prompt (a pasted log, a file's contents, a web page summary): then
+the LLM is reading attacker-controllable text *and* it can suggest commands
+that touch your filesystem. Don't do that. The user reviewing and approving
+each command at the edit prompt is the safety boundary either way.
 
 See [SECURITY.md](./SECURITY.md) for disclosure and a fuller threat model.
 

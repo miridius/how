@@ -308,7 +308,6 @@ export async function run(opts: RunOpts): Promise<number> {
     if (edited === null) {
       const up = exitCode === 130 ? 2 : 1;
       process.stderr.write(`\x1b[${up}A\x1b[J`);
-      if (denyMatch) log(`🚨 ${denyMatch.reason}`);
       log(`${ACCENT}$${RESET} ${cmd}`);
       log(`${DIM}cancelled${RESET}`);
       return exitCode === 0 ? 130 : exitCode;

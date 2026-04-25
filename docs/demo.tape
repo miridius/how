@@ -11,7 +11,7 @@ Require gum
 Set Shell       "zsh"
 Set FontSize    18
 Set Width       1100
-Set Height      380
+Set Height      560
 Set Theme       "Dracula"
 Set TypingSpeed 60ms
 Set Padding     24
@@ -31,16 +31,24 @@ Show
 
 # --- demo starts here ---
 
+# Command 1: a safe, recognizable prompt — shows the happy path.
 Type "how list the 5 largest files in this directory"
 Sleep 400ms
 Enter
-
-# Wait for the gum prompt to render (its footer shows "enter submit").
-# Dynamic — proceeds the moment the prompt appears, with a 15s safety cap.
 Wait@15s /enter submit/
-
-# Accept the command as-is.
+Sleep 2s
 Enter
+Sleep 2s
 
-# Command runs in the current shell; the output appears inline.
-Sleep 3s
+# Command 2: a denylisted prompt — shows the 🚨 nudge and cancel flow.
+# (Accepting would actually run `git reset --hard origin/<branch>` in the
+# recording's CWD and wipe uncommitted state, so the recording cancels.)
+Type "how reset hard to origin version of current branch"
+Sleep 400ms
+Enter
+Wait@15s /enter submit/
+Sleep 2s
+Escape
+
+# Let the final cancelled state sit for a beat before the GIF loops.
+Sleep 2s

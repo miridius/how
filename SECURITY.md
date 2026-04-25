@@ -37,11 +37,13 @@ principal risks:
    environment. The tool itself never logs the key or prompts, and never
    writes persistent state. Don't pass keys on the command line; they'll
    land in shell history.
-5. **Lethal trifecta.** `how` has private-data access (your working
-   directory) and external-communication capability (`eval` of arbitrary
-   shell). The remaining leg — untrusted input — is whatever you feed the
-   prompt. Feeding it file contents, web pages, or clipboard data shifts
-   this balance; don't do that without understanding the implications.
+5. **Untrusted-input ingestion.** Out of the box `how` only sees prompts
+   the user types, so the "lethal trifecta" risk pattern (private data +
+   untrusted input + external comms) doesn't apply. It does the moment
+   the user pipes attacker-controllable text into the prompt — a pasted
+   log, a file's contents, a web page summary. At that point the LLM is
+   reading instructions from the attacker and can emit commands that
+   exfiltrate or destroy. Don't pipe untrusted content into `how`.
 
 ## Out of scope
 

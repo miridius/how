@@ -101,36 +101,16 @@ command it suggests by hitting Enter — that's the safety boundary.
 - **Bounded request.** Each call caps at 512 output tokens and a 30-second
   timeout.
 
-### Threat model in one paragraph
-
-By default `how` is a one-input tool — natural-language prompts come from
-the user, not from external content — so the standard "lethal trifecta"
-(private-data access + untrusted input + external comms) isn't satisfied as
-shipped. The thing to watch is the moment you start piping untrusted content
-into the prompt (a pasted log, a file's contents, a web page summary): then
-the LLM is reading attacker-controllable text *and* it can suggest commands
-that touch your filesystem. Don't do that. The user reviewing and approving
-each command at the edit prompt is the safety boundary either way.
-
-See [SECURITY.md](./SECURITY.md) for disclosure and a fuller threat model.
+Don't pipe untrusted content into the prompt (file dumps, web pages,
+pasted logs). That's the case where the LLM starts reading
+attacker-controllable text and the denylist is no help.
 
 ---
 
 ## AI authorship
 
-This project was primarily authored by Anthropic's Claude, under human
-direction and review. The author prompted, reviewed, edited, and tested the
-code; Claude generated most of the text. Commit trailers such as
-`Assisted-by: Claude …` capture per-commit provenance.
-
-Per January 2025 guidance from the U.S. Copyright Office, portions that lack
-sufficient human creative input may not be copyrightable. The project is
-released under [MIT](./LICENSE) regardless — the license grants whatever
-rights the maintainers have, and makes no claim about exclusivity (see
-[NOTICE](./NOTICE)).
-
-Treat the code accordingly: read it before you run it, especially given it
-exists to execute shell commands.
+Vibe-coded with Claude. Read the code before you run it. See
+[NOTICE](./NOTICE) for the legal framing.
 
 ---
 

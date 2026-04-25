@@ -1,25 +1,12 @@
-<!--
-Thanks for the PR. Please complete the sections below.
-If this PR touches any safety control (denylist, shape check, root refusal),
-call it out explicitly.
--->
+<!-- Thanks for the PR. -->
 
 ## What
-
-<!-- one-line summary of the change -->
+<!-- one-line summary -->
 
 ## Why
-
-<!-- link to the issue, or describe the motivation -->
-
-## How
-
-<!-- notable design choices, alternatives considered -->
+<!-- motivation, or link to the issue -->
 
 ## Checklist
-
-- [ ] Tests added or updated
-- [ ] `bun run check` passes locally
-- [ ] `CHANGELOG.md` updated under `[Unreleased]`
-- [ ] Safety implications noted (if touching denylist / shape check / root refusal)
-- [ ] AI assistance disclosed per [AI_POLICY.md](../AI_POLICY.md)
+- [ ] `bun run check` passes
+- [ ] If touching `src/denylist.ts`, a test was added
+- [ ] AI disclosure if applicable (see [AI_POLICY.md](../AI_POLICY.md))
